@@ -347,8 +347,11 @@ public class MongoNoAuthWrapper implements MongoWrapper {
     try {
       return getMongo().getDatabaseNames();
     } catch ( Exception e ) {
-      throw new KettleException( BaseMessages.getString( PKG, "MongoNoAuthWrapper.Message.Error.RetrieveDbNames" ), e //$NON-NLS-1$
-          .getCause() );
+      if ( e instanceof KettleException ) {
+        throw (KettleException) e;
+      } else {
+        throw new KettleException( e );
+      }
     }
   }
 
@@ -356,8 +359,11 @@ public class MongoNoAuthWrapper implements MongoWrapper {
     try {
       return getMongo().getDB( dbName );
     } catch ( Exception e ) {
-      throw new KettleException( BaseMessages.getString( PKG, "MongoNoAuthWrapper.Message.Error.RetrieveDbObjects", //$NON-NLS-1$
-          dbName ), e.getCause() );
+      if ( e instanceof KettleException ) {
+        throw (KettleException) e;
+      } else {
+        throw new KettleException( e );
+      }
     }
   }
 
@@ -381,11 +387,12 @@ public class MongoNoAuthWrapper implements MongoWrapper {
   public Set<String> getCollectionsNames( String dB ) throws KettleException {
     try {
       return getDb( dB ).getCollectionNames();
-    } catch ( KettleException e ) {
-      throw e;
     } catch ( Exception e ) {
-      throw new KettleException( BaseMessages.getString( PKG,
-          "MongoNoAuthWrapper.Message.Error.RetrieveCollectionNames", dB ), e.getCause() ); //$NON-NLS-1$
+      if ( e instanceof KettleException ) {
+        throw (KettleException) e;
+      } else {
+        throw new KettleException( e );
+      }
     }
   }
 
@@ -411,8 +418,11 @@ public class MongoNoAuthWrapper implements MongoWrapper {
           extractLastErrorModes( config, customLastErrorModes );
         }
       } catch ( Exception e ) {
-        throw new KettleException(
-            BaseMessages.getString( PKG, "MongoNoAuthWrapper.Message.Error.RetrieveErrorModes" ), e.getCause() ); //$NON-NLS-1$
+        if ( e instanceof KettleException ) {
+          throw (KettleException) e;
+        } else {
+          throw new KettleException( e );
+        }
       }
     }
 
@@ -435,7 +445,7 @@ public class MongoNoAuthWrapper implements MongoWrapper {
     }
   }
 
-  public List<String> getIndexInfo( String dbName, String collection ) throws Exception {
+  public List<String> getIndexInfo( String dbName, String collection ) throws KettleException {
     try {
       DB db = getDb( dbName );
 
@@ -474,7 +484,11 @@ public class MongoNoAuthWrapper implements MongoWrapper {
     } catch ( Exception e ) {
       log.logError( BaseMessages.getString( PKG, "MongoNoAuthWrapper.ErrorMessage.GeneralError.Message" ) //$NON-NLS-1$
           + ":\n\n" + e.getMessage(), e ); //$NON-NLS-1$
-      throw e;
+      if ( e instanceof KettleException ) {
+        throw (KettleException) e;
+      } else {
+        throw new KettleException( e );
+      }
     }
   }
 

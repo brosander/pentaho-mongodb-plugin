@@ -12,7 +12,7 @@ import com.mongodb.DBObject;
 public interface MongoWrapper {
   public Set<String> getCollectionsNames( String dB ) throws KettleException;
 
-  public List<String> getIndexInfo( String dbName, String collection ) throws Exception;
+  public List<String> getIndexInfo( String dbName, String collection ) throws KettleException;
 
   public List<MongoField> discoverFields( String db, String collection, String query, String fields,
       boolean isPipeline, int docsToSample ) throws KettleException;

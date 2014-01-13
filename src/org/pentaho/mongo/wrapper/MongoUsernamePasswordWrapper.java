@@ -85,8 +85,11 @@ public class MongoUsernamePasswordWrapper extends MongoNoAuthWrapper {
     } catch ( KettleException e ) {
       throw e;
     } catch ( Exception e ) {
-      throw new KettleException( BaseMessages.getString( PKG,
-          "MongoUsernamePasswordWrapper.Message.Error.UnableToGetDatabaseObject" ), e.getCause() ); //$NON-NLS-1$
+      if ( e instanceof KettleException ) {
+        throw (KettleException) e;
+      } else {
+        throw new KettleException( e );
+      }
     }
   }
 
