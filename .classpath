@@ -5,4 +5,50 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.apache.ivyde.eclipse.cpcontainer.IVYDE_CONTAINER/?project=pentaho-big-data-plugin&amp;ivyXmlPath=ivy.xml&amp;confs=default%2Ctest%2Csource"/>
 	<classpathentry kind="output" path="eclipse-bin"/>
+	<classpathentry kind="lib" path="lib/commons-codec-1.5.jar" />
+	<classpathentry kind="lib" path="lib/commons-vfs-20091118-pentaho.jar" />
+	<classpathentry kind="lib" path="lib/jface-3.3.0-I20070606-0010.jar" />
+	<classpathentry kind="lib" path="lib/kettle-core-TRUNK-SNAPSHOT.jar" />
+	<classpathentry kind="lib" path="lib/kettle-engine-TRUNK-SNAPSHOT.jar" />
+	<classpathentry kind="lib" path="lib/kettle-ui-swt-TRUNK-SNAPSHOT.jar" />
+	<classpathentry kind="lib" path="lib/metastore-TRUNK-SNAPSHOT.jar" />
+	<classpathentry kind="lib" path="lib/mongo-java-driver-2.11.1.jar" />
+	<classpathentry kind="lib" path="lib/pentaho-xul-core-TRUNK-SNAPSHOT.jar" />
+	<classpathentry kind="lib" path="lib/pentaho-xul-swing-TRUNK-SNAPSHOT.jar" />
+	<classpathentry kind="lib" path="lib/pentaho-xul-swt-TRUNK-SNAPSHOT.jar" />
+	<classpathentry kind="lib" path="lib/x86-3.3.0-v3346.jar" />
+	<classpathentry kind="lib" path="test-lib/antisamy-1.4.3.jar" />
+	<classpathentry kind="lib" path="test-lib/batik-css-1.7.jar" />
+	<classpathentry kind="lib" path="test-lib/batik-ext-1.7.jar" />
+	<classpathentry kind="lib" path="test-lib/batik-util-1.7.jar" />
+	<classpathentry kind="lib" path="test-lib/bsh-core-2.0b4.jar" />
+	<classpathentry kind="lib" path="test-lib/cglib-nodep-2.2.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-beanutils-1.7.0.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-beanutils-core-1.7.0.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-codec-1.2.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-collections-3.2.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-configuration-1.5.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-digester-1.8.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-fileupload-1.2.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-httpclient-3.1.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-lang-2.3.jar" />
+	<classpathentry kind="lib" path="test-lib/commons-logging-1.1.1.jar" />
+	<classpathentry kind="lib" path="test-lib/dom4j-1.6.1.jar" />
+	<classpathentry kind="lib" path="test-lib/easymock-3.0.jar" />
+	<classpathentry kind="lib" path="test-lib/esapi-2.0.1.jar" />
+	<classpathentry kind="lib" path="test-lib/jaxen-1.1-beta-8.jar" />
+	<classpathentry kind="lib" path="test-lib/jdom-1.0.jar" />
+	<classpathentry kind="lib" path="test-lib/junit-4.5.jar" />
+	<classpathentry kind="lib" path="test-lib/log4j-1.2.16.jar" />
+	<classpathentry kind="lib" path="test-lib/nekohtml-1.9.12.jar" />
+	<classpathentry kind="lib" path="test-lib/objenesis-1.2.jar" />
+	<classpathentry kind="lib" path="test-lib/shrinkwrap-api-1.0.0-alpha-12.jar" />
+	<classpathentry kind="lib" path="test-lib/shrinkwrap-impl-base-1.0.0-alpha-12.jar" />
+	<classpathentry kind="lib" path="test-lib/shrinkwrap-spi-1.0.0-alpha-12.jar" />
+	<classpathentry kind="lib" path="test-lib/xalan-2.7.0.jar" />
+	<classpathentry kind="lib" path="test-lib/xercesImpl-2.8.1.jar" />
+	<classpathentry kind="lib" path="test-lib/xml-apis-2.0.2.jar" />
+	<classpathentry kind="lib" path="test-lib/xml-apis-ext-1.3.04.jar" />
+	<classpathentry kind="lib" path="test-lib/xmlParserAPIs-2.6.2.jar" />
+	<classpathentry kind="lib" path="test-lib/xom-1.1.jar" />
 </classpath>

@@ -29,6 +29,7 @@ import com.mongodb.BasicDBList;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
 
+@SuppressWarnings("deprecation")
 public class MongoUtilsTest {
   public static String REP_SET_CONFIG = "{\"_id\" : \"foo\", \"version\" : 1, "
       + "\"members\" : [" + "{" + "\"_id\" : 0, "
@@ -72,29 +73,25 @@ public class MongoUtilsTest {
     DBObject config = (DBObject) JSON.parse(REP_SET_CONFIG);
     Object members = config.get(MongoUtils.REPL_SET_MEMBERS);
 
-    List<String> allTags = new ArrayList<String>();
-
-    MongoUtils.setupAllTags((BasicDBList) members, allTags);
+    List<String> allTags = MongoUtils.setupAllTags((BasicDBList) members);
 
     assertEquals(4, allTags.size());
   }
 
   @Test
   public void testGetReplicaSetMembersThatSatisfyTagSets() {
-    List<DBObject> satisfy = new ArrayList<DBObject>();
     List<DBObject> tagSets = new ArrayList<DBObject>(); // tags to satisfy
 
-    DBObject tSet = (DBObject) JSON.parse(TAG_SET);
-    tagSets.add(tSet);
+    DBObject tSet = (DBObject) JSON.parse( TAG_SET );
+    tagSets.add( tSet );
 
-    DBObject config = (DBObject) JSON.parse(REP_SET_CONFIG);
-    Object members = config.get(MongoUtils.REPL_SET_MEMBERS);
+    DBObject config = (DBObject) JSON.parse( REP_SET_CONFIG );
+    Object members = config.get( MongoUtils.REPL_SET_MEMBERS );
 
-    MongoUtils.checkForReplicaSetMembersThatSatisfyTagSets(tagSets, satisfy,
-        (BasicDBList) members);
+    List<DBObject> satisfy = MongoUtils.checkForReplicaSetMembersThatSatisfyTagSets( tagSets, (BasicDBList) members );
 
     // two replica set members have the "use : production" tag in their tag sets
-    assertEquals(2, satisfy.size());
+    assertEquals( 2, satisfy.size() );
   }
 
   public static void main(String[] args) {
