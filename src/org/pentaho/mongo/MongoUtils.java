@@ -35,7 +35,7 @@ import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.steps.mongodbinput.MongoDbInputData;
+import org.pentaho.di.trans.steps.mongodb.MongoDbMeta;
 import org.pentaho.di.trans.steps.mongodbinput.MongoDbInputMeta;
 import org.pentaho.di.trans.steps.mongodboutput.MongoDbOutputMeta;
 
@@ -60,9 +60,9 @@ import com.mongodb.util.JSON;
  * 
  * @author Mark Hall (mhall{[at]}pentaho{[dot]}com)
  */
+@Deprecated
 public class MongoUtils {
-
-  private static Class<?> PKG = MongoUtils.class;
+  static Class<?> PKG = MongoUtils.class;
 
   public static final int MONGO_DEFAULT_PORT = 27017;
 
@@ -75,64 +75,29 @@ public class MongoUtils {
   /**
    * Create a credentials object
    * 
-   * @param username the username to use
-   * @param password the password to use (normal authentication only)
-   * @param dbName the database to authenticate against (normal authentication
-   *          only)
-   * @param kerberos true if Kerberos authentication is to be used
-   * @return a configured MongoCredential object
-   */
-  public static MongoCredential createCredentials(String username,
-      String password, String dbName, boolean kerberos) {
-    MongoCredential cred = null;
-
-    if (kerberos) {
-      if (!Const.isEmpty(username)) {
-        cred = MongoCredential.createGSSAPICredential(username);
-      }
-    } else {
-      // standard authentication
-      if (!Const.isEmpty(username) || !Const.isEmpty(password)) {
-        cred = MongoCredential.createMongoCRCredential(username, dbName,
-            password.toCharArray());
-      }
-    }
-
-    return cred;
-  }
-
-  /**
-   * Create a credentials object
-   * 
-   * @param meta MongoDBOutputMeta to use for getting username, password etc.
-   * @param vars for resolving environment variables
-   * @return a configured MongoCredential object
-   */
-  public static MongoCredential createCredentials(MongoDbOutputMeta meta,
-      VariableSpace vars) {
-    String realUser = vars.environmentSubstitute(meta.getUsername());
-    String realPass = Encr.decryptPasswordOptionallyEncrypted(vars
-        .environmentSubstitute(meta.getPassword()));
-
-    return createCredentials(realUser, realPass, meta.getDBName(),
-        meta.getUseKerberosAuthentication());
-  }
-
-  /**
-   * Create a credentials object
-   * 
    * @param meta MongoDBInputMeta to use for getting username, password etc.
    * @param vars for resolving environment variables
    * @return a configured MongoCredential object
    */
-  public static MongoCredential createCredentials(MongoDbInputMeta meta,
+  public static MongoCredential createCredentials(MongoDbMeta meta,
       VariableSpace vars) {
     String realUser = vars.environmentSubstitute(meta.getAuthenticationUser());
     String realPass = Encr.decryptPasswordOptionallyEncrypted(vars
         .environmentSubstitute(meta.getAuthenticationPassword()));
 
-    return createCredentials(realUser, realPass, meta.getDbName(),
-        meta.getUseKerberosAuthentication());
+    if (meta.getUseKerberosAuthentication()) {
+      if (!Const.isEmpty(realUser)) {
+        return MongoCredential.createGSSAPICredential(realUser);
+      }
+    } else {
+      // standard authentication
+      if (!Const.isEmpty(realUser) || !Const.isEmpty(realPass)) {
+        return MongoCredential.createMongoCRCredential(realUser, meta.getDbName(),
+            realPass.toCharArray());
+      }
+    }
+    
+    return null;
   }
 
   /**
@@ -269,34 +234,20 @@ public class MongoUtils {
         try {
           int wc = Integer.parseInt(writeConcern);
           concern = new WriteConcern(wc, wt, false, journaled);
-
-          if (log != null) {
-            String lwc = "w = " + writeConcern + ", wTimeout = " + wt
-                + ", journaled = " + (new Boolean(journaled).toString());
-            log.logBasic(BaseMessages.getString(PKG,
-                "MongoUtils.Message.ConfiguringWithWriteConcern", lwc));
-          }
         } catch (NumberFormatException n) {
           // assume its a valid string - e.g. "majority" or a custom
           // getLastError label associated with a tag set
           concern = new WriteConcern(writeConcern, wt, false, journaled);
-
-          if (log != null) {
-            String lwc = "w = " + writeConcern + ", wTimeout = " + wt
-                + ", journaled = " + (new Boolean(journaled).toString());
-            log.logBasic(BaseMessages.getString(PKG,
-                "MongoUtils.Message.ConfiguringWithWriteConcern", lwc));
-          }
         }
       } else {
         concern = new WriteConcern(1, wt, false, journaled);
-
-        if (log != null) {
-          String lwc = "w = 1" + ", wTimeout = " + wt + ", journaled = "
-              + (new Boolean(journaled).toString());
-          log.logBasic(BaseMessages.getString(PKG,
-              "MongoUtils.Message.ConfiguringWithWriteConcern", lwc));
-        }
+      }
+      
+      if (log != null) {
+        String lwc = "w = " + concern.getW() + ", wTimeout = " + concern.getWtimeout()
+            + ", journaled = " + concern.getJ();
+        log.logBasic(BaseMessages.getString(PKG,
+            "MongoUtils.Message.ConfiguringWithWriteConcern", lwc));
       }
     }
     optsBuilder.writeConcern(concern);
@@ -419,14 +370,15 @@ public class MongoUtils {
    * 
    * @param meta the step meta data
    * @param vars variables to use
+   * @param cred a configured MongoCredential for authentication (or null for no
+   *          authentication)
    * @param log for logging
    * @return a configured MongoClient object
    * @throws KettleException if a problem occurs
    */
-  public static MongoClient initConnection(MongoDbOutputMeta meta,
+  public static MongoClient initConnection(MongoDbMeta meta,
       VariableSpace vars, MongoCredential cred, LogChannelInterface log)
       throws KettleException {
-
     String hostsPorts = meta.getHostnames();
     String singlePort = meta.getPort();
     String connTimeout = meta.getConnectTimeout();
@@ -435,39 +387,6 @@ public class MongoUtils {
     String writeConcern = meta.getWriteConcern();
     String wTimeout = meta.getWTimeout();
     boolean journaled = meta.getJournal();
-    // no read preference tag sets in the output step
-    List<String> tagSet = null;
-
-    boolean useAllReplicaSetMembers = meta.getUseAllReplicaSetMembers();
-
-    return initConnection(hostsPorts, singlePort, cred,
-        useAllReplicaSetMembers, connTimeout, sockTimeout, readPreference,
-        writeConcern, wTimeout, journaled, tagSet, vars, log);
-  }
-
-  /**
-   * Create a connection to a Mongo server based on parameters supplied in the
-   * step meta data
-   * 
-   * @param meta the step meta data
-   * @param vars variables to use
-   * @param cred a configured MongoCredential for authentication (or null for no
-   *          authentication)
-   * @param log for logging
-   * @return a configured MongoClient object
-   * @throws KettleException if a problem occurs
-   */
-  public static MongoClient initConnection(MongoDbInputMeta meta,
-      VariableSpace vars, MongoCredential cred, LogChannelInterface log)
-      throws KettleException {
-    String hostsPorts = meta.getHostnames();
-    String singlePort = meta.getPort();
-    String connTimeout = meta.getConnectTimeout();
-    String sockTimeout = meta.getSocketTimeout();
-    String readPreference = meta.getReadPreference();
-    String writeConcern = null;
-    String wTimeout = null;
-    boolean journaled = false;
     List<String> tagSet = meta.getReadPrefTagSets();
     boolean useAllReplicaSetMembers = meta.getUseAllReplicaSetMembers();
 
@@ -482,6 +401,7 @@ public class MongoUtils {
    * setting for the write concern in addition to the standard "w" values of
    * <number> or "majority".
    * 
+   * @param authContext the authorization context
    * @param hostsPorts the hosts to use
    * @param singlePort the default port to use if no ports are given in the
    *          hostsPorts spec
@@ -492,40 +412,54 @@ public class MongoUtils {
    * @return a list of the names of any custom "lastErrorModes"
    * @throws KettleException if a problem occurs
    */
-  public static List<String> getLastErrorModes(String hostsPorts,
-      String singlePort, MongoCredential cred, VariableSpace vars,
-      LogChannelInterface log) throws KettleException {
-
-    List<String> customLastErrorModes = new ArrayList<String>();
-
-    MongoClient mongo = null;
+  public static List<String> getLastErrorModes(AuthContext authContext, final String hostsPorts,
+      final String singlePort, final MongoCredential cred, final VariableSpace vars,
+      final LogChannelInterface log) throws KettleException {
     try {
-      if (cred != null
-          && cred.getMechanism().equals(MongoCredential.MONGODB_CR_MECHANISM)) {
-        // need to make a new credential that specifies the local database
-        cred = MongoCredential.createMongoCRCredential(cred.getUserName(),
-            LOCAL_DB, cred.getPassword());
-      }
-      mongo = initConnection(hostsPorts, singlePort, cred, false, null, null,
-          null, null, null, false, null, vars, log);
+      return authContext.doAs( new PrivilegedExceptionAction<List<String>>() {
 
-      DB local = mongo.getDB(LOCAL_DB);
-      if (local != null) {
+        @Override
+        public List<String> run() throws Exception {
+          List<String> customLastErrorModes = new ArrayList<String>();
 
-        DBCollection replset = local.getCollection(REPL_SET_COLLECTION);
-        if (replset != null) {
-          DBObject config = replset.findOne();
+          MongoClient mongo = null;
+          try {
+            MongoCredential actualCred = cred;
+            if (cred != null
+                && cred.getMechanism().equals(MongoCredential.MONGODB_CR_MECHANISM)) {
+              // need to make a new credential that specifies the local database
+              actualCred = MongoCredential.createMongoCRCredential(cred.getUserName(),
+                  LOCAL_DB, cred.getPassword());
+            }
+            mongo = initConnection(hostsPorts, singlePort, actualCred, false, null, null,
+                null, null, null, false, null, vars, log);
 
-          extractLastErrorModes(config, customLastErrorModes);
+            DB local = mongo.getDB(LOCAL_DB);
+            if (local != null) {
+
+              DBCollection replset = local.getCollection(REPL_SET_COLLECTION);
+              if (replset != null) {
+                DBObject config = replset.findOne();
+
+                extractLastErrorModes(config, customLastErrorModes);
+              }
+            }
+          } finally {
+            if (mongo != null) {
+              mongo.close();
+            }
+          }
+
+          return customLastErrorModes;
         }
-      }
-    } finally {
-      if (mongo != null) {
-        mongo.close();
+      } );
+    } catch ( PrivilegedActionException ex ) {
+      if ( ex.getCause() instanceof KettleException ) {
+        throw (KettleException) ex.getCause();
+      } else {
+        throw new KettleException( "Unable to retrieve database names from MongoDB", ex.getCause() );
       }
     }
-
-    return customLastErrorModes;
   }
 
   protected static void extractLastErrorModes(DBObject config,
@@ -556,12 +490,9 @@ public class MongoUtils {
    * @return a list containing any custom getLastError modes
    * @throws KettleException if a connection or authentication error occurs
    */
-  public static List<String> getLastErrorModes(MongoDbOutputMeta meta,
-      VariableSpace vars, MongoCredential cred, LogChannelInterface log)
-      throws KettleException {
-
-    return getLastErrorModes(meta.getHostnames(), meta.getPort(), cred, vars,
-        log);
+  public static List<String> getLastErrorModes( MongoDbOutputMeta meta, VariableSpace vars, MongoCredential cred,
+      LogChannelInterface log ) throws KettleException {
+    return getLastErrorModes( createAuthContext( meta, vars ), meta.getHostnames(), meta.getPort(), cred, vars, log );
   }
 
   protected static String quote(String string) {
@@ -590,13 +521,14 @@ public class MongoUtils {
   public static List<String> getAllTags(MongoDbInputMeta meta,
       VariableSpace vars, MongoCredential cred, LogChannelInterface log)
       throws KettleException {
-    return getAllTags(meta.getHostnames(), meta.getPort(), cred, vars, log);
+    return getAllTags( createAuthContext( meta, vars ), meta.getHostnames(), meta.getPort(), cred, vars, log );
   }
 
   /**
    * Get a list of all tagName : tagValue pairs that occur in the tag sets
    * defined across the replica set.
    * 
+   * @param authContext the authorization context
    * @param hostsPorts the hosts to use
    * @param singlePort the default port to use if no ports specified in
    *          hostsPorts spec
@@ -607,21 +539,29 @@ public class MongoUtils {
    * @return a list of tags that occur in the replica set configuration
    * @throws KettleException if an error occurs
    */
-  public static List<String> getAllTags(String hostsPorts, String singlePort,
-      MongoCredential cred, VariableSpace vars, LogChannelInterface log)
+  public static List<String> getAllTags(AuthContext authContext, final String hostsPorts, final String singlePort,
+      final MongoCredential cred, final VariableSpace vars, final LogChannelInterface log)
       throws KettleException {
+    try {
+      return authContext.doAs( new PrivilegedExceptionAction<List<String>>() {
 
-    List<String> allTags = new ArrayList<String>();
+        @Override
+        public List<String> run() throws Exception {
+          BasicDBList members = getRepSetMemberRecords( hostsPorts, singlePort, cred, vars, log );
 
-    BasicDBList members = getRepSetMemberRecords(hostsPorts, singlePort, cred,
-        vars, log);
-
-    setupAllTags(members, allTags);
-
-    return allTags;
+          return setupAllTags( members );
+        }
+      } );
+    } catch ( PrivilegedActionException ex ) {
+      if ( ex.getCause() instanceof KettleException ) {
+        throw (KettleException) ex.getCause();
+      } else {
+        throw new KettleException( "Unable to retrieve database names from MongoDB", ex.getCause() );
+      }
+    }
   }
 
-  protected static void setupAllTags(BasicDBList members, List<String> allTags) {
+  protected static List<String> setupAllTags(BasicDBList members) {
     HashSet<String> tempTags = new HashSet<String>();
 
     if (members != null && members.size() > 0) {
@@ -643,9 +583,7 @@ public class MongoUtils {
       }
     }
 
-    for (String s : tempTags) {
-      allTags.add(s);
-    }
+    return new ArrayList<String>(tempTags);
   }
 
   /**
@@ -662,11 +600,10 @@ public class MongoUtils {
    *         of tag sets
    * @throws KettleException if a problem occurs
    */
-  public static List<DBObject> getReplicaSetMembersThatSatisfyTagSets(
-      List<DBObject> tagSets, MongoDbInputMeta meta, VariableSpace vars,
-      MongoCredential cred, LogChannelInterface log) throws KettleException {
-    return getReplicaSetMembersThatSatisfyTagSets(tagSets, meta.getHostnames(),
-        meta.getPort(), cred, vars, log);
+  public static List<DBObject> getReplicaSetMembersThatSatisfyTagSets( List<DBObject> tagSets, MongoDbInputMeta meta,
+      VariableSpace vars, MongoCredential cred, LogChannelInterface log ) throws KettleException {
+    return getReplicaSetMembersThatSatisfyTagSets( createAuthContext( meta, vars ), tagSets, meta.getHostnames(), meta
+        .getPort(), cred, vars, log );
   }
 
   /**
@@ -675,6 +612,7 @@ public class MongoUtils {
    * = i.e. a member satisfies if it satisfies at least one of the tag sets in
    * the supplied list.
    * 
+   * @param authContext the authentication context to use
    * @param tagSets the list of tag sets to match against
    * @param hostsPorts the hosts to use
    * @param singlePort the default port to use, if no ports are given in the
@@ -687,50 +625,58 @@ public class MongoUtils {
    *         of tag sets
    * @throws KettleException if a problem occurs
    */
-  public static List<DBObject> getReplicaSetMembersThatSatisfyTagSets(
-      List<DBObject> tagSets, String hostsPorts, String singlePort,
-      MongoCredential cred, VariableSpace vars, LogChannelInterface log)
-      throws KettleException {
+  public static List<DBObject> getReplicaSetMembersThatSatisfyTagSets( AuthContext authContext,
+      final List<DBObject> tagSets, final String hostsPorts, final String singlePort, final MongoCredential cred,
+      final VariableSpace vars, final LogChannelInterface log ) throws KettleException {
+    try {
+      return authContext.doAs( new PrivilegedExceptionAction<List<DBObject>>() {
 
-    List<DBObject> satisfy = new ArrayList<DBObject>();
+        @Override
+        public List<DBObject> run() throws Exception {
+          BasicDBList members = getRepSetMemberRecords( hostsPorts, singlePort, cred, vars, log );
 
-    BasicDBList members = getRepSetMemberRecords(hostsPorts, singlePort, cred,
-        vars, log);
-
-    checkForReplicaSetMembersThatSatisfyTagSets(tagSets, satisfy, members);
-
-    return satisfy;
+          return checkForReplicaSetMembersThatSatisfyTagSets( tagSets, members );
+        }
+      } );
+    } catch ( PrivilegedActionException ex ) {
+      if ( ex.getCause() instanceof KettleException ) {
+        throw (KettleException) ex.getCause();
+      } else {
+        throw new KettleException( "Unable to retrieve database names from MongoDB", ex.getCause() );
+      }
+    }
   }
 
-  protected static void checkForReplicaSetMembersThatSatisfyTagSets(
-      List<DBObject> tagSets, List<DBObject> satisfy, BasicDBList members) {
-    if (members != null && members.size() > 0) {
-      for (int i = 0; i < members.size(); i++) {
-        Object m = members.get(i);
+  protected static List<DBObject> checkForReplicaSetMembersThatSatisfyTagSets( List<DBObject> tagSets,
+      BasicDBList members ) {
+    List<DBObject> satisfy = new ArrayList<DBObject>();
+    if ( members != null && members.size() > 0 ) {
+      for ( int i = 0; i < members.size(); i++ ) {
+        Object m = members.get( i );
 
-        if (m != null) {
-          DBObject tags = (DBObject) ((DBObject) m).get("tags"); //$NON-NLS-1$
-          if (tags == null) {
+        if ( m != null ) {
+          DBObject tags = (DBObject) ( (DBObject) m ).get( "tags" ); //$NON-NLS-1$
+          if ( tags == null ) {
             continue;
           }
 
-          for (int j = 0; j < tagSets.size(); j++) {
+          for ( int j = 0; j < tagSets.size(); j++ ) {
             boolean match = true;
-            DBObject toMatch = tagSets.get(j);
+            DBObject toMatch = tagSets.get( j );
 
-            for (String tagName : toMatch.keySet()) {
-              String tagValue = toMatch.get(tagName).toString();
+            for ( String tagName : toMatch.keySet() ) {
+              String tagValue = toMatch.get( tagName ).toString();
 
               // does replica set member m's tags contain this tag?
-              Object matchVal = tags.get(tagName);
+              Object matchVal = tags.get( tagName );
 
-              if (matchVal == null) {
+              if ( matchVal == null ) {
                 match = false; // doesn't match this particular tag set
                 // no need to check any other keys in toMatch
                 break;
               }
 
-              if (!matchVal.toString().equals(tagValue)) {
+              if ( !matchVal.toString().equals( tagValue ) ) {
                 // rep set member m's tags has this tag, but it's value does not
                 // match
                 match = false;
@@ -740,17 +686,19 @@ public class MongoUtils {
               }
             }
 
-            if (match) {
+            if ( match ) {
               // all tag/values present and match - add this member (only if its
               // not already there)
-              if (!satisfy.contains(m)) {
-                satisfy.add((DBObject) m);
+              if ( !satisfy.contains( m ) ) {
+                satisfy.add( (DBObject) m );
               }
             }
           }
         }
       }
     }
+
+    return satisfy;
   }
 
   protected static BasicDBList getRepSetMemberRecords(String hostsPorts,
@@ -846,44 +794,55 @@ public class MongoUtils {
    * @return a list of replica set ServerAddresses
    * @throws KettleException if a problem occurs
    */
-  public static List<ServerAddress> getReplicaSetMembers(String hostsPorts,
-      String singlePort, MongoCredential cred, VariableSpace vars,
-      LogChannelInterface log) throws KettleException {
-    List<ServerAddress> replSetMembers = new ArrayList<ServerAddress>();
+  public static List<ServerAddress> getReplicaSetMembers( AuthContext authContext, final String hostsPorts,
+      final String singlePort, final MongoCredential cred, final VariableSpace vars, final LogChannelInterface log )
+    throws KettleException {
 
-    if (log != null) {
-      log.logBasic(BaseMessages.getString(PKG,
-          "MongoUtils.Message.QueryingForReplicaSetMembers", hostsPorts));
+    if ( log != null ) {
+      log.logBasic( BaseMessages.getString( PKG, "MongoUtils.Message.QueryingForReplicaSetMembers", hostsPorts ) );
     }
-    BasicDBList members = getRepSetMemberRecords(hostsPorts, singlePort, cred,
-        vars, log);
 
     try {
-      if (members != null && members.size() > 0) {
-        for (int i = 0; i < members.size(); i++) {
-          Object m = members.get(i);
+      return authContext.doAs( new PrivilegedExceptionAction<List<ServerAddress>>() {
 
-          if (m != null) {
-            String hostPort = ((DBObject) m).get("host").toString(); //$NON-NLS-1$
-            if (!Const.isEmpty(hostPort)) {
-              String[] parts = hostPort.split(":"); //$NON-NLS-1$
-              if (parts.length == 2) {
-                ServerAddress address = new ServerAddress(parts[0].trim(),
-                    Integer.parseInt(parts[1].trim()));
-                replSetMembers.add(address);
-              } else {
-                ServerAddress address = new ServerAddress(parts[0].trim());
-                replSetMembers.add(address);
+        @Override
+        public List<ServerAddress> run() throws Exception {
+          List<ServerAddress> replSetMembers = new ArrayList<ServerAddress>();
+          BasicDBList members = getRepSetMemberRecords( hostsPorts, singlePort, cred, vars, log );
+
+          try {
+            if ( members != null && members.size() > 0 ) {
+              for ( int i = 0; i < members.size(); i++ ) {
+                Object m = members.get( i );
+
+                if ( m != null ) {
+                  String hostPort = ( (DBObject) m ).get( "host" ).toString(); //$NON-NLS-1$
+                  if ( !Const.isEmpty( hostPort ) ) {
+                    String[] parts = hostPort.split( ":" ); //$NON-NLS-1$
+                    if ( parts.length == 2 ) {
+                      ServerAddress address = new ServerAddress( parts[0].trim(), Integer.parseInt( parts[1].trim() ) );
+                      replSetMembers.add( address );
+                    } else {
+                      ServerAddress address = new ServerAddress( parts[0].trim() );
+                      replSetMembers.add( address );
+                    }
+                  }
+                }
               }
             }
+          } catch ( Exception ex ) {
+            throw new KettleException( ex );
           }
+          return replSetMembers;
         }
+      } );
+    } catch ( PrivilegedActionException ex ) {
+      if ( ex.getCause() instanceof KettleException ) {
+        throw (KettleException) ex.getCause();
+      } else {
+        throw new KettleException( "Unable to retrieve database names from MongoDB", ex.getCause() );
       }
-    } catch (Exception ex) {
-      throw new KettleException(ex);
     }
-
-    return replSetMembers;
   }
 
   /**
@@ -906,8 +865,8 @@ public class MongoUtils {
    * @return
    * @throws KettleException Error logging in as the provided user.
    */
-  public static AuthContext createAuthContext(MongoDbOutputMeta meta, VariableSpace varSpace)  throws KettleException {
-    return createAuthContext(varSpace, meta.getUseKerberosAuthentication(), varSpace.environmentSubstitute(meta.getUsername()));
+  public static AuthContext createAuthContext(MongoDbMeta meta, VariableSpace varSpace)  throws KettleException {
+    return createAuthContext(varSpace, meta.getUseKerberosAuthentication(), varSpace.environmentSubstitute(meta.getAuthenticationUser()));
   }
 
   private static AuthContext createAuthContext(VariableSpace varSpace, boolean useKerberosAuth, String principal) throws KettleException {
@@ -938,7 +897,7 @@ public class MongoUtils {
         public List<String> run() throws Exception {
           MongoClient conn = null;
           try {
-            conn = MongoDbInputData.initConnection(meta, varSpace, null);
+            conn = initConnection(meta, varSpace, createCredentials( meta, varSpace ), null);
             return conn.getDatabaseNames();
           } finally {
             if (conn != null) {
@@ -982,17 +941,9 @@ public class MongoUtils {
         public Set<String> run() throws Exception {
           MongoClient conn = null;
           try {
-            conn = MongoDbInputData.initConnection(meta, varSpace, null);
+            conn = MongoUtils.initConnection(meta, varSpace, MongoUtils.createCredentials( meta, varSpace ), null);
             DB theDB = conn.getDB(dB);
-
-            if (!Const.isEmpty(username) || !Const.isEmpty(realPass)) {
-              CommandResult comResult = theDB.authenticateCommand(username, realPass.toCharArray());
-              if (!comResult.ok()) {
-                throw new Exception(BaseMessages.getString(PKG, "MongoDbInput.ErrorAuthenticating.Exception", //$NON-NLS-1$
-                    comResult.getErrorMessage()));
-              }
-            }
-
+            authenticateIfNecessary( theDB, meta.getUseKerberosAuthentication(), username, realPass );
             return theDB.getCollectionNames();
           } finally {
             if (conn != null) {
@@ -1009,6 +960,16 @@ public class MongoUtils {
       }
     }
   }
+  
+  public static void authenticateIfNecessary(DB theDB, boolean isKerberos, String username, String realPass) throws Exception {
+    if ( !isKerberos && ( !Const.isEmpty( username ) || !Const.isEmpty( realPass ) ) ) {
+      CommandResult comResult = theDB.authenticateCommand( username, realPass.toCharArray() );
+      if ( !comResult.ok() ) {
+        throw new Exception( BaseMessages.getString( PKG, "MongoDbInput.ErrorAuthenticating.Exception", //$NON-NLS-1$
+            comResult.getErrorMessage() ) );
+      }
+    }
+  }
 
   public static void main(String[] args) {
     try {
@@ -1016,15 +977,16 @@ public class MongoUtils {
       String defaultPort = args[1];
       Variables vars = new Variables();
 
-      List<String> repSetTags = MongoUtils.getAllTags(hostPort, defaultPort,
-          null, vars, null);
+      List<String> repSetTags =
+          MongoUtils
+              .getAllTags( new AuthContext( new LoginContext( "test" ) ), hostPort, defaultPort, null, vars, null );
 
       System.out.println("Number of tags: " + repSetTags.size()); //$NON-NLS-1$
       for (String tag : repSetTags) {
         System.out.println(tag);
       }
 
-      List<ServerAddress> repSetMembers = MongoUtils.getReplicaSetMembers(
+      List<ServerAddress> repSetMembers = MongoUtils.getReplicaSetMembers(new AuthContext( new LoginContext( "test" ) ),
           hostPort, defaultPort, null, vars, null);
       System.out.println("Number of replica set members: "
           + repSetMembers.size());

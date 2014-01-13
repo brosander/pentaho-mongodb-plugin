@@ -38,12 +38,11 @@ import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
-import org.pentaho.mongo.NamedReadPreference;
+import org.pentaho.di.trans.steps.mongodb.MongoDbMeta;
 import org.w3c.dom.Node;
 
 /**
@@ -55,7 +54,7 @@ import org.w3c.dom.Node;
  * @author Mark Hall (mhall{[at]}pentaho{[dot]}com)
  */
 @Step(id = "MongoDbOutput", image = "MongoDB.png", name = "MongoDB Output", description = "Writes to a Mongo DB collection", categoryDescription = "Big Data")
-public class MongoDbOutputMeta extends BaseStepMeta implements
+public class MongoDbOutputMeta extends MongoDbMeta implements
   StepMetaInterface {
 
   private static Class<?> PKG = MongoDbOutputMeta.class; // for i18n purposes
@@ -197,29 +196,8 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
     }
   }
 
-  /** Hostname/IP address(es) of mongo server(s) */
-  protected String m_hostnames = "localhost"; //$NON-NLS-1$
-
-  /** Port that mongo is listening on */
-  protected String m_port = "27017"; //$NON-NLS-1$
-
-  /** The DB to use */
-  protected String m_dbName;
-
-  /** The collection to use */
-  protected String m_collection;
-
   /** Whether to truncate the collection */
   protected boolean m_truncate;
-
-  /** Username for authentication */
-  protected String m_username;
-
-  /** Password for authentication */
-  protected String m_password;
-
-  /** Kerberos authentication? */
-  private boolean m_kerberos;
 
   /** True if updates (rather than inserts) are to be performed */
   protected boolean m_update;
@@ -246,49 +224,12 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
 
   /** The batch size for inserts */
   protected String m_batchInsertSize = "100"; //$NON-NLS-1$
-
+  
   /** The list of paths to document fields for incoming kettle values */
   protected List<MongoField> m_mongoFields;
 
   /** The list of index definitions (if any) */
   protected List<MongoIndex> m_mongoIndexes;
-
-  /** timeout for the connection */
-  protected String m_connectTimeout = ""; // default - never time out //$NON-NLS-1$
-
-  /** timeout on the socket */
-  protected String m_socketTimeout = ""; // default - never time out //$NON-NLS-1$
-
-  /** primary, primaryPreferred, secondary, secondaryPreferred, nearest */
-  protected String m_readPreference = NamedReadPreference.PRIMARY.getName();
-
-  /**
-   * default = 1 (standalone or primary acknowledges writes; -1 no
-   * acknowledgement and all errors suppressed; 0 no acknowledgement, but
-   * socket/network errors passed to client; "majority" returns after a majority
-   * of the replica set members have acknowledged; n (>1) returns after n
-   * replica set members have acknowledged; tags (string) specific replica set
-   * members with the tags need to acknowledge
-   */
-  protected String m_writeConcern = ""; //$NON-NLS-1$
-
-  /**
-   * The time in milliseconds to wait for replication to succeed, as specified
-   * in the w option, before timing out
-   */
-  protected String m_wTimeout = ""; //$NON-NLS-1$
-
-  /**
-   * whether write operations will wait till the mongod acknowledges the write
-   * operations and commits the data to the on disk journal
-   */
-  protected boolean m_journal;
-
-  /**
-   * whether to discover and use all replica set members (if not already
-   * specified in the hosts field)
-   */
-  private boolean m_useAllReplicaSetMembers;
 
   public static final int RETRIES = 5;
   public static final int RETRY_DELAY = 10; // seconds
@@ -298,14 +239,17 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
 
   @Override
   public void setDefault() {
-    m_hostnames = "localhost"; //$NON-NLS-1$
-    m_port = "27017"; //$NON-NLS-1$
-    m_collection = ""; //$NON-NLS-1$
-    m_dbName = ""; //$NON-NLS-1$
+    setHostnames( "localhost" ); //$NON-NLS-1$
+    setPort( "27017" ); //$NON-NLS-1$
+    setCollection( "" ); //$NON-NLS-1$
+    setDbName( "" ); //$NON-NLS-1$
     m_upsert = false;
     m_modifierUpdate = false;
     m_truncate = false;
     m_batchInsertSize = "100"; //$NON-NLS-1$
+    setWriteConcern( "" );
+    setWTimeout( "" );;
+    setJournal( false );
   }
 
   /**
@@ -345,61 +289,6 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
   }
 
   /**
-   * Set the hostname(s)
-   * 
-   * @param hosts hostnames (comma separated: host:<port>)
-   */
-  public void setHostnames(String hosts) {
-    m_hostnames = hosts;
-  }
-
-  /**
-   * Get the hostname(s)
-   * 
-   * @return the hostnames (comma separated: host:<port>)
-   */
-  public String getHostnames() {
-    return m_hostnames;
-  }
-
-  /**
-   * @param port the port. This is a port to use for all hostnames (avoids
-   *          having to specify the same port for each hostname in the hostnames
-   *          list
-   */
-  public void setPort(String port) {
-    m_port = port;
-  }
-
-  /**
-   * @return the port. This is a port to use for all hostnames (avoids having to
-   *         specify the same port for each hostname in the hostnames list
-   */
-  public String getPort() {
-    return m_port;
-  }
-
-  /**
-   * Set whether to query specified host(s) to discover all replica set member
-   * addresses
-   * 
-   * @param u true if replica set members are to be automatically discovered.
-   */
-  public void setUseAllReplicaSetMembers(boolean u) {
-    m_useAllReplicaSetMembers = u;
-  }
-
-  /**
-   * Get whether to query specified host(s) to discover all replica set member
-   * addresses
-   * 
-   * @return true if replica set members are to be automatically discovered.
-   */
-  public boolean getUseAllReplicaSetMembers() {
-    return m_useAllReplicaSetMembers;
-  }
-
-  /**
    * Set the number of retry attempts to make if a particular write operation
    * fails
    * 
@@ -435,96 +324,6 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
    */
   public String getWriteRetryDelay() {
     return m_writeRetryDelay;
-  }
-
-  /**
-   * Set the database name to use
-   * 
-   * @param db the database name to use
-   */
-  public void setDBName(String db) {
-    m_dbName = db;
-  }
-
-  /**
-   * Get the database name to use
-   * 
-   * @return the database name to use
-   */
-  public String getDBName() {
-    return m_dbName;
-  }
-
-  /**
-   * Set the collection to use
-   * 
-   * @param collection the collection to use
-   */
-  public void setCollection(String collection) {
-    m_collection = collection;
-  }
-
-  /**
-   * Get the collection to use
-   * 
-   * @return the collection to use
-   */
-  public String getCollection() {
-    return m_collection;
-  }
-
-  /**
-   * Set the username to authenticate with
-   * 
-   * @param username the username to authenticate with
-   */
-  public void setUsername(String username) {
-    m_username = username;
-  }
-
-  /**
-   * Get the username to authenticate with
-   * 
-   * @return the username to authenticate with
-   */
-  public String getUsername() {
-    return m_username;
-  }
-
-  /**
-   * Set the password to authenticate with
-   * 
-   * @param password the password to authenticate with
-   */
-  public void setPassword(String password) {
-    m_password = password;
-  }
-
-  /**
-   * Get the password to authenticate with
-   * 
-   * @return the password to authenticate with
-   */
-  public String getPassword() {
-    return m_password;
-  }
-
-  /**
-   * Set whether to use kerberos authentication
-   * 
-   * @param k true if kerberos is to be used
-   */
-  public void setUseKerberosAuthentication(boolean k) {
-    m_kerberos = k;
-  }
-
-  /**
-   * Get whether to use kerberos authentication
-   * 
-   * @return true if kerberos is to be used
-   */
-  public boolean getUseKerberosAuthentication() {
-    return m_kerberos;
   }
 
   /**
@@ -642,120 +441,6 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
     m_batchInsertSize = size;
   }
 
-  /**
-   * Set the connection timeout. The default is never timeout
-   * 
-   * @param to the connection timeout in milliseconds
-   */
-  public void setConnectTimeout(String to) {
-    m_connectTimeout = to;
-  }
-
-  /**
-   * Get the connection timeout. The default is never timeout
-   * 
-   * @return the connection timeout in milliseconds
-   */
-  public String getConnectTimeout() {
-    return m_connectTimeout;
-  }
-
-  /**
-   * Set the number of milliseconds to attempt a send or receive on a socket
-   * before timing out.
-   * 
-   * @param so the number of milliseconds before socket timeout
-   */
-  public void setSocketTimeout(String so) {
-    m_socketTimeout = so;
-  }
-
-  /**
-   * Get the number of milliseconds to attempt a send or receive on a socket
-   * before timing out.
-   * 
-   * @return the number of milliseconds before socket timeout
-   */
-  public String getSocketTimeout() {
-    return m_socketTimeout;
-  }
-
-  /**
-   * Set the read preference to use - primary, primaryPreferred, secondary,
-   * secondaryPreferred or nearest.
-   * 
-   * @param preference the read preference to use
-   */
-  public void setReadPreference(String preference) {
-    m_readPreference = preference;
-  }
-
-  /**
-   * Get the read preference to use - primary, primaryPreferred, secondary,
-   * secondaryPreferred or nearest.
-   * 
-   * @return the read preference to use
-   */
-  public String getReadPreference() {
-    return m_readPreference;
-  }
-
-  /**
-   * Set the write concern to use
-   * 
-   * @param concern the write concern to use
-   */
-  public void setWriteConcern(String concern) {
-    m_writeConcern = concern;
-  }
-
-  /**
-   * Get the write concern to use
-   * 
-   * @param co the write concern to use
-   */
-  public String getWriteConcern() {
-    return m_writeConcern;
-  }
-
-  /**
-   * Set the time in milliseconds to wait for replication to succeed, as
-   * specified in the w option, before timing out
-   * 
-   * @param w the timeout to use
-   */
-  public void setWTimeout(String w) {
-    m_wTimeout = w;
-  }
-
-  /**
-   * Get the time in milliseconds to wait for replication to succeed, as
-   * specified in the w option, before timing out
-   * 
-   * @return the timeout to use
-   */
-  public String getWTimeout() {
-    return m_wTimeout;
-  }
-
-  /**
-   * Set whether to use journaled writes
-   * 
-   * @param j true for journaled writes
-   */
-  public void setJournal(boolean j) {
-    m_journal = j;
-  }
-
-  /**
-   * Get whether to use journaled writes
-   * 
-   * @return true for journaled writes
-   */
-  public boolean getJournal() {
-    return m_journal;
-  }
-
   @Override
   public void check(List<CheckResultInterface> remarks, TransMeta transMeta,
     StepMeta stepMeta, RowMetaInterface prev, String[] input, String[] output,
@@ -808,38 +493,38 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
   public String getXML() {
     StringBuffer retval = new StringBuffer();
 
-    if (!Const.isEmpty(m_hostnames)) {
+    if (!Const.isEmpty(getHostnames())) {
       retval.append("\n    ").append( //$NON-NLS-1$
-        XMLHandler.addTagValue("mongo_host", m_hostnames)); //$NON-NLS-1$
+        XMLHandler.addTagValue("mongo_host", getHostnames())); //$NON-NLS-1$
     }
-    if (!Const.isEmpty(m_port)) {
+    if (!Const.isEmpty(getPort())) {
       retval.append("\n    ").append( //$NON-NLS-1$
-        XMLHandler.addTagValue("mongo_port", m_port)); //$NON-NLS-1$
+        XMLHandler.addTagValue("mongo_port", getPort())); //$NON-NLS-1$
     }
 
     retval
-      .append("    ").append(XMLHandler.addTagValue("use_all_replica_members", m_useAllReplicaSetMembers)); //$NON-NLS-1$ //$NON-NLS-2$
+      .append("    ").append(XMLHandler.addTagValue("use_all_replica_members", getUseAllReplicaSetMembers())); //$NON-NLS-1$ //$NON-NLS-2$
 
-    if (!Const.isEmpty(m_username)) {
+    if (!Const.isEmpty(getAuthenticationUser())) {
       retval.append("\n    ").append( //$NON-NLS-1$
-        XMLHandler.addTagValue("mongo_user", m_username)); //$NON-NLS-1$
+        XMLHandler.addTagValue("mongo_user", getAuthenticationUser())); //$NON-NLS-1$
     }
-    if (!Const.isEmpty(m_password)) {
+    if (!Const.isEmpty(getAuthenticationPassword())) {
       retval.append("\n    ").append( //$NON-NLS-1$
         XMLHandler.addTagValue("mongo_password", //$NON-NLS-1$
-          Encr.encryptPasswordIfNotUsingVariables(m_password)));
+          Encr.encryptPasswordIfNotUsingVariables(getAuthenticationPassword())));
     }
 
     retval.append("    ").append( //$NON-NLS-1$
-      XMLHandler.addTagValue("auth_kerberos", m_kerberos)); //$NON-NLS-1$
+      XMLHandler.addTagValue("auth_kerberos", getUseKerberosAuthentication())); //$NON-NLS-1$
 
-    if (!Const.isEmpty(m_dbName)) {
+    if (!Const.isEmpty(getDbName())) {
       retval.append("\n    ").append( //$NON-NLS-1$
-        XMLHandler.addTagValue("mongo_db", m_dbName)); //$NON-NLS-1$
+        XMLHandler.addTagValue("mongo_db", getDbName())); //$NON-NLS-1$
     }
-    if (!Const.isEmpty(m_collection)) {
+    if (!Const.isEmpty(getCollection())) {
       retval.append("\n    ").append( //$NON-NLS-1$
-        XMLHandler.addTagValue("mongo_collection", m_collection)); //$NON-NLS-1$
+        XMLHandler.addTagValue("mongo_collection", getCollection())); //$NON-NLS-1$
     }
     if (!Const.isEmpty(m_batchInsertSize)) {
       retval.append("\n    ").append( //$NON-NLS-1$
@@ -847,17 +532,17 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
     }
 
     retval.append("    ").append( //$NON-NLS-1$
-      XMLHandler.addTagValue("connect_timeout", m_connectTimeout)); //$NON-NLS-1$
+      XMLHandler.addTagValue("connect_timeout", getConnectTimeout())); //$NON-NLS-1$
     retval.append("    ").append( //$NON-NLS-1$
-      XMLHandler.addTagValue("socket_timeout", m_socketTimeout)); //$NON-NLS-1$
+      XMLHandler.addTagValue("socket_timeout", getSocketTimeout())); //$NON-NLS-1$
     retval.append("    ").append( //$NON-NLS-1$
-      XMLHandler.addTagValue("read_preference", m_readPreference)); //$NON-NLS-1$
+      XMLHandler.addTagValue("read_preference", getReadPreference())); //$NON-NLS-1$
     retval.append("    ").append( //$NON-NLS-1$
-      XMLHandler.addTagValue("write_concern", m_writeConcern)); //$NON-NLS-1$
+      XMLHandler.addTagValue("write_concern", getWriteConcern())); //$NON-NLS-1$
     retval.append("    ").append( //$NON-NLS-1$
-      XMLHandler.addTagValue("w_timeout", m_wTimeout)); //$NON-NLS-1$
+      XMLHandler.addTagValue("w_timeout", getWTimeout())); //$NON-NLS-1$
     retval.append("    ").append( //$NON-NLS-1$
-      XMLHandler.addTagValue("journaled_writes", m_journal)); //$NON-NLS-1$
+      XMLHandler.addTagValue("journaled_writes", getJournal())); //$NON-NLS-1$
 
     retval.append("\n    ").append( //$NON-NLS-1$
       XMLHandler.addTagValue("truncate", m_truncate)); //$NON-NLS-1$
@@ -931,33 +616,27 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
   @Override
   public void loadXML(Node stepnode, List<DatabaseMeta> databases,
     Map<String, Counter> counters) throws KettleXMLException {
-
-    m_hostnames = XMLHandler.getTagValue(stepnode, "mongo_host"); //$NON-NLS-1$
-    m_port = XMLHandler.getTagValue(stepnode, "mongo_port"); //$NON-NLS-1$
-    m_username = XMLHandler.getTagValue(stepnode, "mongo_user"); //$NON-NLS-1$
-    m_password = XMLHandler.getTagValue(stepnode, "mongo_password"); //$NON-NLS-1$
-    if (!Const.isEmpty(m_password)) {
-      m_password = Encr.decryptPasswordOptionallyEncrypted(m_password);
+    setHostnames( XMLHandler.getTagValue( stepnode, "mongo_host" ) ); //$NON-NLS-1$
+    setPort( XMLHandler.getTagValue( stepnode, "mongo_port" ) ); //$NON-NLS-1$
+    setAuthenticationUser( XMLHandler.getTagValue( stepnode, "mongo_user" ) ); //$NON-NLS-1$
+    setAuthenticationPassword( XMLHandler.getTagValue( stepnode, "mongo_password" ) ); //$NON-NLS-1$
+    if ( !Const.isEmpty( getAuthenticationPassword() ) ) {
+      setAuthenticationPassword( Encr.decryptPasswordOptionallyEncrypted( getAuthenticationPassword() ) );
     }
 
-    m_kerberos = false;
-    String useKerberos = XMLHandler.getTagValue(stepnode, "auth_kerberos"); //$NON-NLS-1$
-    if (!Const.isEmpty(useKerberos)) {
-      m_kerberos = useKerberos.equalsIgnoreCase("Y");
-    }
-
-    m_dbName = XMLHandler.getTagValue(stepnode, "mongo_db"); //$NON-NLS-1$
-    m_collection = XMLHandler.getTagValue(stepnode, "mongo_collection"); //$NON-NLS-1$
+    setUseKerberosAuthentication( "Y".equalsIgnoreCase( XMLHandler.getTagValue(stepnode, "auth_kerberos") ) ); //$NON-NLS-1$
+    setDbName( XMLHandler.getTagValue(stepnode, "mongo_db") ); //$NON-NLS-1$
+    setCollection( XMLHandler.getTagValue(stepnode, "mongo_collection") ); //$NON-NLS-1$
     m_batchInsertSize = XMLHandler.getTagValue(stepnode, "batch_insert_size"); //$NON-NLS-1$
 
-    m_connectTimeout = XMLHandler.getTagValue(stepnode, "connect_timeout"); //$NON-NLS-1$
-    m_socketTimeout = XMLHandler.getTagValue(stepnode, "socket_timeout"); //$NON-NLS-1$
-    m_readPreference = XMLHandler.getTagValue(stepnode, "read_preference"); //$NON-NLS-1$
-    m_writeConcern = XMLHandler.getTagValue(stepnode, "write_concern"); //$NON-NLS-1$
-    m_wTimeout = XMLHandler.getTagValue(stepnode, "w_timeout"); //$NON-NLS-1$
+    setConnectTimeout( XMLHandler.getTagValue(stepnode, "connect_timeout") ); //$NON-NLS-1$
+    setSocketTimeout( XMLHandler.getTagValue(stepnode, "socket_timeout") ); //$NON-NLS-1$
+    setReadPreference( XMLHandler.getTagValue(stepnode, "read_preference") ); //$NON-NLS-1$
+    setWriteConcern( XMLHandler.getTagValue(stepnode, "write_concern") ); //$NON-NLS-1$
+    setWTimeout( XMLHandler.getTagValue(stepnode, "w_timeout") ); //$NON-NLS-1$
     String journaled = XMLHandler.getTagValue(stepnode, "journaled_writes"); //$NON-NLS-1$
     if (!Const.isEmpty(journaled)) {
-      m_journal = journaled.equalsIgnoreCase("Y"); //$NON-NLS-1$
+      setJournal( journaled.equalsIgnoreCase("Y") ); //$NON-NLS-1$
     }
 
     m_truncate = XMLHandler.getTagValue(stepnode, "truncate").equalsIgnoreCase( //$NON-NLS-1$
@@ -980,12 +659,7 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
       m_update = true;
     }
 
-    m_useAllReplicaSetMembers = false; // default to false for backwards
-    // compatibility
-    String useAll = XMLHandler.getTagValue(stepnode, "use_all_replica_members"); //$NON-NLS-1$
-    if (!Const.isEmpty(useAll)) {
-      m_useAllReplicaSetMembers = useAll.equalsIgnoreCase("Y"); //$NON-NLS-1$
-    }
+    setUseAllReplicaSetMembers( "Y".equalsIgnoreCase( XMLHandler.getTagValue(stepnode, "use_all_replica_members") ) ); //$NON-NLS-1$ //$NON-NLS-2$
 
     String writeRetries = XMLHandler.getTagValue(stepnode, "write_retries"); //$NON-NLS-1$
     if (!Const.isEmpty(writeRetries)) {
@@ -1061,27 +735,27 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
     List<DatabaseMeta> databases, Map<String, Counter> counters)
     throws KettleException {
 
-    m_hostnames = rep.getStepAttributeString(id_step, 0, "mongo_host"); //$NON-NLS-1$
-    m_port = rep.getStepAttributeString(id_step, 0, "mongo_port"); //$NON-NLS-1$
-    m_useAllReplicaSetMembers = rep.getStepAttributeBoolean(id_step, 0,
-      "use_all_replica_members"); //$NON-NLS-1$
-    m_username = rep.getStepAttributeString(id_step, 0, "mongo_user"); //$NON-NLS-1$
-    m_password = rep.getStepAttributeString(id_step, 0, "mongo_password"); //$NON-NLS-1$
-    if (!Const.isEmpty(m_password)) {
-      m_password = Encr.decryptPasswordOptionallyEncrypted(m_password);
+    setHostnames( rep.getStepAttributeString(id_step, 0, "mongo_host") ); //$NON-NLS-1$
+    setPort( rep.getStepAttributeString(id_step, 0, "mongo_port") ); //$NON-NLS-1$
+    setUseAllReplicaSetMembers( rep.getStepAttributeBoolean(id_step, 0,
+      "use_all_replica_members") ); //$NON-NLS-1$
+    setAuthenticationUser( rep.getStepAttributeString(id_step, 0, "mongo_user") ); //$NON-NLS-1$
+    setAuthenticationPassword( rep.getStepAttributeString(id_step, 0, "mongo_password") ); //$NON-NLS-1$
+    if (!Const.isEmpty(getAuthenticationPassword())) {
+      setAuthenticationPassword( Encr.decryptPasswordOptionallyEncrypted(getAuthenticationPassword()) );
     }
-    m_kerberos = rep.getStepAttributeBoolean(id_step, "auth_kerberos"); //$NON-NLS-1$
-    m_dbName = rep.getStepAttributeString(id_step, 0, "mongo_db"); //$NON-NLS-1$
-    m_collection = rep.getStepAttributeString(id_step, 0, "mongo_collection"); //$NON-NLS-1$
+    setUseKerberosAuthentication( rep.getStepAttributeBoolean(id_step, "auth_kerberos") ); //$NON-NLS-1$
+    setDbName( rep.getStepAttributeString(id_step, 0, "mongo_db") ); //$NON-NLS-1$
+    setCollection( rep.getStepAttributeString(id_step, 0, "mongo_collection") ); //$NON-NLS-1$
     m_batchInsertSize = rep.getStepAttributeString(id_step, 0,
       "batch_insert_size"); //$NON-NLS-1$
 
-    m_connectTimeout = rep.getStepAttributeString(id_step, "connect_timeout"); //$NON-NLS-1$
-    m_socketTimeout = rep.getStepAttributeString(id_step, "socket_timeout"); //$NON-NLS-1$
-    m_readPreference = rep.getStepAttributeString(id_step, "read_preference"); //$NON-NLS-1$
-    m_writeConcern = rep.getStepAttributeString(id_step, "write_concern"); //$NON-NLS-1$
-    m_wTimeout = rep.getStepAttributeString(id_step, "w_timeout"); //$NON-NLS-1$
-    m_journal = rep.getStepAttributeBoolean(id_step, 0, "journaled_writes"); //$NON-NLS-1$
+    setConnectTimeout( rep.getStepAttributeString(id_step, "connect_timeout") ); //$NON-NLS-1$
+    setSocketTimeout( rep.getStepAttributeString(id_step, "socket_timeout") ); //$NON-NLS-1$
+    setReadPreference( rep.getStepAttributeString(id_step, "read_preference") ); //$NON-NLS-1$
+    setWriteConcern( rep.getStepAttributeString(id_step, "write_concern") ); //$NON-NLS-1$
+    setWTimeout( rep.getStepAttributeString(id_step, "w_timeout") ); //$NON-NLS-1$
+    setJournal( rep.getStepAttributeBoolean(id_step, 0, "journaled_writes") ); //$NON-NLS-1$
 
     m_truncate = rep.getStepAttributeBoolean(id_step, 0, "truncate"); //$NON-NLS-1$
     m_update = rep.getStepAttributeBoolean(id_step, 0, "update"); //$NON-NLS-1$
@@ -1157,37 +831,37 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
   public void saveRep(Repository rep, ObjectId id_transformation,
     ObjectId id_step) throws KettleException {
 
-    if (!Const.isEmpty(m_hostnames)) {
+    if (!Const.isEmpty(getHostnames())) {
       rep.saveStepAttribute(id_transformation, id_step, 0, "mongo_host", //$NON-NLS-1$
-        m_hostnames);
+        getHostnames());
     }
-    if (!Const.isEmpty(m_port)) {
+    if (!Const.isEmpty(getPort())) {
       rep
-        .saveStepAttribute(id_transformation, id_step, 0, "mongo_port", m_port); //$NON-NLS-1$
+        .saveStepAttribute(id_transformation, id_step, 0, "mongo_port", getPort()); //$NON-NLS-1$
     }
 
     rep.saveStepAttribute(id_transformation, id_step,
-      "use_all_replica_members", m_useAllReplicaSetMembers); //$NON-NLS-1$
+      "use_all_replica_members", getUseAllReplicaSetMembers()); //$NON-NLS-1$
 
-    if (!Const.isEmpty(m_username)) {
+    if (!Const.isEmpty(getAuthenticationUser())) {
       rep.saveStepAttribute(id_transformation, id_step, 0, "mongo_user", //$NON-NLS-1$
-        m_username);
+        getAuthenticationUser());
     }
-    if (!Const.isEmpty(m_password)) {
+    if (!Const.isEmpty(getAuthenticationPassword())) {
       rep.saveStepAttribute(id_transformation, id_step, 0, "mongo_password", //$NON-NLS-1$
-        Encr.encryptPasswordIfNotUsingVariables(m_password));
+        Encr.encryptPasswordIfNotUsingVariables(getAuthenticationPassword()));
     }
 
     rep.saveStepAttribute(id_transformation, id_step, "auth_kerberos", //$NON-NLS-1$
-      m_kerberos);
+      getUseKerberosAuthentication());
 
-    if (!Const.isEmpty(m_dbName)) {
+    if (!Const.isEmpty(getDbName())) {
       rep
-        .saveStepAttribute(id_transformation, id_step, 0, "mongo_db", m_dbName); //$NON-NLS-1$
+        .saveStepAttribute(id_transformation, id_step, 0, "mongo_db", getCollection()); //$NON-NLS-1$
     }
-    if (!Const.isEmpty(m_collection)) {
+    if (!Const.isEmpty(getCollection())) {
       rep.saveStepAttribute(id_transformation, id_step, 0, "mongo_collection", //$NON-NLS-1$
-        m_collection);
+        getCollection());
     }
     if (!Const.isEmpty(m_batchInsertSize)) {
       rep.saveStepAttribute(id_transformation, id_step, 0, "batch_insert_size", //$NON-NLS-1$
@@ -1195,16 +869,16 @@ public class MongoDbOutputMeta extends BaseStepMeta implements
     }
 
     rep.saveStepAttribute(id_transformation, id_step, "connect_timeout", //$NON-NLS-1$
-      m_connectTimeout);
+      getConnectTimeout());
     rep.saveStepAttribute(id_transformation, id_step, "socket_timeout", //$NON-NLS-1$
-      m_socketTimeout);
+      getSocketTimeout());
     rep.saveStepAttribute(id_transformation, id_step, "read_preference", //$NON-NLS-1$
-      m_readPreference);
+      getReadPreference());
     rep.saveStepAttribute(id_transformation, id_step, "write_concern", //$NON-NLS-1$
-      m_writeConcern);
-    rep.saveStepAttribute(id_transformation, id_step, "w_timeout", m_wTimeout); //$NON-NLS-1$
+      getWriteConcern());
+    rep.saveStepAttribute(id_transformation, id_step, "w_timeout", getWTimeout()); //$NON-NLS-1$
     rep.saveStepAttribute(id_transformation, id_step, "journaled_writes", //$NON-NLS-1$
-      m_journal);
+      getJournal());
 
     rep
       .saveStepAttribute(id_transformation, id_step, 0, "truncate", m_truncate); //$NON-NLS-1$
