@@ -1,5 +1,7 @@
 package org.pentaho.mongo.wrapper;
 
+import java.lang.reflect.Proxy;
+
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogChannelInterface;
@@ -10,7 +12,9 @@ public class MongoWrapperFactory {
   public static MongoWrapper createMongoWrapper( MongoDbMeta meta, VariableSpace vars, LogChannelInterface log )
     throws KettleException {
     if ( meta.getUseKerberosAuthentication() ) {
-      return new MongoKerberosWrapper( meta, vars, log );
+      MongoKerberosWrapper wrapper = new MongoKerberosWrapper( meta, vars, log );
+      return (MongoWrapper) Proxy.newProxyInstance( wrapper.getClass().getClassLoader(),
+          new Class<?>[] { MongoWrapper.class }, new KerberosInvocationHandler( wrapper.getAuthContext(), wrapper ) );
     } else if ( !Const.isEmpty( meta.getAuthenticationUser() ) || !Const.isEmpty( meta.getAuthenticationPassword() ) ) {
       return new MongoUsernamePasswordWrapper( meta, vars, log );
     } else {

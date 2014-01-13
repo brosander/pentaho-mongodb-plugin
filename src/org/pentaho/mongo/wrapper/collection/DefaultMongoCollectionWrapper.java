@@ -66,6 +66,11 @@ public class DefaultMongoCollectionWrapper implements MongoCollectionWrapper {
     collection.createIndex( mongoIndex );
   }
 
+  @Override
+  public WriteResult save( DBObject toTry ) throws KettleException {
+    return collection.save( toTry );
+  }
+
   protected MongoCursorWrapper wrap( DBCursor cursor ) {
     return new DefaultCursorWrapper( cursor );
   }

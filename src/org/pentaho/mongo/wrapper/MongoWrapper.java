@@ -32,7 +32,7 @@ public interface MongoWrapper {
    *           if a problem occurs
    */
   public List<String> getAllTags() throws KettleException;
-  
+
   /**
    * Return a list of replica set members whos tags satisfy the supplied list of tag set. It is assumed that members
    * satisfy according to an OR relationship = i.e. a member satisfies if it satisfies at least one of the tag sets in
@@ -45,7 +45,7 @@ public interface MongoWrapper {
    *           if a problem occurs
    */
   public List<String> getReplicaSetMembersThatSatisfyTagSets( List<DBObject> tagSets ) throws KettleException;
-  
+
   /**
    * Return a list of custom "lastErrorModes" (if any) defined in the replica set configuration object on the server.
    * These can be used as the "w" setting for the write concern in addition to the standard "w" values of <number> or
@@ -56,10 +56,10 @@ public interface MongoWrapper {
    *           if a problem occurs
    */
   public List<String> getLastErrorModes() throws KettleException;
-  
-  public MongoCollectionWrapper createCollection( String db, String name) throws KettleException;
-  
-  public MongoCollectionWrapper getCollection(String db, String name) throws KettleException;
 
-  public void dispose();
+  public MongoCollectionWrapper createCollection( String db, String name ) throws KettleException;
+
+  public MongoCollectionWrapper getCollection( String db, String name ) throws KettleException;
+
+  public void dispose() throws KettleException;
 }

@@ -296,7 +296,11 @@ public class MongoDbInput extends BaseStep implements StepInterface {
       }
     }
     if (data.wrapper != null) {
-      data.wrapper.dispose();
+      try {
+        data.wrapper.dispose();
+      } catch ( KettleException e ) {
+        log.logError( e.getMessage() );
+      }
     }
 
     super.dispose(smi, sdi);
