@@ -77,6 +77,11 @@ public class MongoNoAuthWrapper implements MongoWrapper {
     mongo = initConnection( meta, vars, log );
   }
 
+  public MongoNoAuthWrapper( MongoClient mongo, LogChannelInterface log ) {
+    this.mongo = mongo;
+    this.log = log;
+  }
+
   public MongoClient getMongo() {
     return mongo;
   }
@@ -429,7 +434,7 @@ public class MongoNoAuthWrapper implements MongoWrapper {
     return customLastErrorModes;
   }
 
-  private void extractLastErrorModes( DBObject config, List<String> customLastErrorModes ) {
+  protected void extractLastErrorModes( DBObject config, List<String> customLastErrorModes ) {
     if ( config != null ) {
       Object settings = config.get( REPL_SET_SETTINGS );
 
@@ -959,7 +964,7 @@ public class MongoNoAuthWrapper implements MongoWrapper {
     return setMembers;
   }
 
-  private List<String> setupAllTags( BasicDBList members ) {
+  protected List<String> setupAllTags( BasicDBList members ) {
     HashSet<String> tempTags = new HashSet<String>();
 
     if ( members != null && members.size() > 0 ) {

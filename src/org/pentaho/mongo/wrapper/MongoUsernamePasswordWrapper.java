@@ -45,6 +45,12 @@ public class MongoUsernamePasswordWrapper extends MongoNoAuthWrapper {
     user = vars.environmentSubstitute( meta.getAuthenticationUser() );
     password = Encr.decryptPasswordOptionallyEncrypted( vars.environmentSubstitute( meta.getAuthenticationPassword() ) );
   }
+  
+  public MongoUsernamePasswordWrapper( MongoClient mongo, LogChannelInterface log, String user, String password ) {
+    super( mongo, log );
+    this.user = user;
+    this.password = password;
+  }
 
   public String getUser() {
     return user;
