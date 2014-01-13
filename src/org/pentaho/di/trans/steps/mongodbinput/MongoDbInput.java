@@ -31,7 +31,7 @@ import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
-import org.pentaho.mongo.wrapper.MongoWrapperFactory;
+import org.pentaho.mongo.wrapper.MongoClientWrapperFactory;
 
 import com.mongodb.AggregationOutput;
 import com.mongodb.DBObject;
@@ -132,10 +132,12 @@ public class MongoDbInput extends BaseStep implements StepInterface {
       }
 
       return true;
-    } catch ( KettleException e ) {
-      throw e;
     } catch ( Exception e ) {
-      throw new KettleException( "Unexpected error", e );
+      if ( e instanceof KettleException ) {
+        throw (KettleException) e;
+      } else {
+        throw new KettleException( e ); //$NON-NLS-1$
+      }
     }
   }
 
@@ -265,8 +267,8 @@ public class MongoDbInput extends BaseStep implements StepInterface {
         }
 
         // init connection constructs a MongoCredentials object if necessary
-        data.wrapper = MongoWrapperFactory.createMongoWrapper( meta, this, log );
-        data.collection = data.wrapper.getCollection(db, collection);
+        data.clientWrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, this, log );
+        data.collection = data.clientWrapper.getCollection(db, collection);
 
         if (!((MongoDbInputMeta) stepMetaInterface).getOutputJson()) {
           ((MongoDbInputData) stepDataInterface)
@@ -295,9 +297,9 @@ public class MongoDbInput extends BaseStep implements StepInterface {
         log.logError( e.getMessage() );
       }
     }
-    if (data.wrapper != null) {
+    if (data.clientWrapper != null) {
       try {
-        data.wrapper.dispose();
+        data.clientWrapper.dispose();
       } catch ( KettleException e ) {
         log.logError( e.getMessage() );
       }

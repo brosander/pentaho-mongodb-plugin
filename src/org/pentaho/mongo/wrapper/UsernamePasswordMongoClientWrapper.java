@@ -18,8 +18,8 @@ import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 
-public class MongoUsernamePasswordWrapper extends MongoNoAuthWrapper {
-  static Class<?> PKG = MongoUsernamePasswordWrapper.class;
+public class UsernamePasswordMongoClientWrapper extends NoAuthMongoClientWrapper {
+  static Class<?> PKG = UsernamePasswordMongoClientWrapper.class;
 
   private final String user;
   private final String password;
@@ -39,14 +39,14 @@ public class MongoUsernamePasswordWrapper extends MongoNoAuthWrapper {
    * @throws KettleException
    *           if a problem occurs
    */
-  public MongoUsernamePasswordWrapper( MongoDbMeta meta, VariableSpace vars, LogChannelInterface log )
+  public UsernamePasswordMongoClientWrapper( MongoDbMeta meta, VariableSpace vars, LogChannelInterface log )
     throws KettleException {
     super( meta, vars, log );
     user = vars.environmentSubstitute( meta.getAuthenticationUser() );
     password = Encr.decryptPasswordOptionallyEncrypted( vars.environmentSubstitute( meta.getAuthenticationPassword() ) );
   }
   
-  public MongoUsernamePasswordWrapper( MongoClient mongo, LogChannelInterface log, String user, String password ) {
+  public UsernamePasswordMongoClientWrapper( MongoClient mongo, LogChannelInterface log, String user, String password ) {
     super( mongo, log );
     this.user = user;
     this.password = password;
@@ -88,8 +88,6 @@ public class MongoUsernamePasswordWrapper extends MongoNoAuthWrapper {
       DB result = getMongo().getDB( dbName );
       authenticateWithDb( result );
       return result;
-    } catch ( KettleException e ) {
-      throw e;
     } catch ( Exception e ) {
       if ( e instanceof KettleException ) {
         throw (KettleException) e;

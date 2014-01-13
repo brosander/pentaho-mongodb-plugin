@@ -44,8 +44,8 @@ import com.mongodb.TaggableReadPreference;
 import com.mongodb.WriteConcern;
 import com.mongodb.util.JSON;
 
-public class MongoNoAuthWrapper implements MongoWrapper {
-  private static Class<?> PKG = MongoNoAuthWrapper.class;
+public class NoAuthMongoClientWrapper implements MongoClientWrapper {
+  private static Class<?> PKG = NoAuthMongoClientWrapper.class;
   public static final int MONGO_DEFAULT_PORT = 27017;
 
   public static final String LOCAL_DB = "local"; //$NON-NLS-1$
@@ -72,12 +72,12 @@ public class MongoNoAuthWrapper implements MongoWrapper {
    * @throws KettleException
    *           if a problem occurs
    */
-  public MongoNoAuthWrapper( MongoDbMeta meta, VariableSpace vars, LogChannelInterface log ) throws KettleException {
+  public NoAuthMongoClientWrapper( MongoDbMeta meta, VariableSpace vars, LogChannelInterface log ) throws KettleException {
     this.log = log;
     mongo = initConnection( meta, vars, log );
   }
 
-  public MongoNoAuthWrapper( MongoClient mongo, LogChannelInterface log ) {
+  public NoAuthMongoClientWrapper( MongoClient mongo, LogChannelInterface log ) {
     this.mongo = mongo;
     this.log = log;
   }

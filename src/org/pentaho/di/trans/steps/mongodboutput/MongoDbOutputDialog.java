@@ -66,8 +66,8 @@ import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.mongo.NamedReadPreference;
-import org.pentaho.mongo.wrapper.MongoWrapper;
-import org.pentaho.mongo.wrapper.MongoWrapperFactory;
+import org.pentaho.mongo.wrapper.MongoClientWrapper;
+import org.pentaho.mongo.wrapper.MongoClientWrapperFactory;
 
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
@@ -1310,12 +1310,12 @@ public class MongoDbOutputDialog extends BaseStepDialog implements StepDialogInt
       final MongoDbOutputMeta meta = new MongoDbOutputMeta();
       getInfo( meta );
       try {
-        MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+        MongoClientWrapper clientWrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
         Set<String> collections = new HashSet<String>();
         try {
-          collections = wrapper.getCollectionsNames( dB );
+          collections = clientWrapper.getCollectionsNames( dB );
         } finally {
-          wrapper.dispose();
+          clientWrapper.dispose();
         }
 
         for ( String c : collections ) {
@@ -1359,7 +1359,7 @@ public class MongoDbOutputDialog extends BaseStepDialog implements StepDialogInt
       MongoDbOutputMeta meta = new MongoDbOutputMeta();
       getInfo( meta );
       try {
-        MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+        MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
         List<String> custom = new ArrayList<String>();
         try {
           custom = wrapper.getLastErrorModes();
@@ -1404,7 +1404,7 @@ public class MongoDbOutputDialog extends BaseStepDialog implements StepDialogInt
         final MongoDbOutputMeta meta = new MongoDbOutputMeta();
         getInfo( meta );
         List<String> dbNames = new ArrayList<String>();
-        MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+        MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
         try {
           dbNames = wrapper.getDatabaseNames();
         } finally {
@@ -1664,7 +1664,7 @@ public class MongoDbOutputDialog extends BaseStepDialog implements StepDialogInt
       try {
         MongoDbOutputMeta meta = new MongoDbOutputMeta();
         getInfo( meta );
-        MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+        MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
         StringBuffer result = new StringBuffer();
         for ( String index : wrapper.getIndexInfo( dbName, collection ) ) {
           result.append( index ).append( "\n\n" ); //$NON-NLS-1$

@@ -36,8 +36,8 @@ import org.pentaho.di.trans.steps.mongodbinput.MongoDbInputData;
 import org.pentaho.di.trans.steps.mongodbinput.MongoDbInputMeta;
 import org.pentaho.mongo.MongoDbException;
 import org.pentaho.mongo.NamedReadPreference;
-import org.pentaho.mongo.wrapper.MongoWrapper;
-import org.pentaho.mongo.wrapper.MongoWrapperFactory;
+import org.pentaho.mongo.wrapper.MongoClientWrapper;
+import org.pentaho.mongo.wrapper.MongoClientWrapperFactory;
 import org.pentaho.ui.xul.XulEventSourceAdapter;
 import org.pentaho.ui.xul.stereotype.Bindable;
 import org.pentaho.ui.xul.util.AbstractModelList;
@@ -574,7 +574,7 @@ public class MongoDbModel extends XulEventSourceAdapter {
     final TransMeta transMeta = new TransMeta();
     saveMeta(meta);
     try {
-      MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+      MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
       List<String> dbNames = null;
       try {
         dbNames = wrapper.getDatabaseNames();
@@ -610,7 +610,7 @@ public class MongoDbModel extends XulEventSourceAdapter {
     MongoDbInputMeta meta = new MongoDbInputMeta();
     saveMeta(meta);
     try {
-      MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, new TransMeta(), log );
+      MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, new TransMeta(), log );
       Set<String> collections = new HashSet<String>();
       try {
         collections = wrapper.getCollectionsNames( dbName );
@@ -694,7 +694,7 @@ public class MongoDbModel extends XulEventSourceAdapter {
 
     try {
       List<String> repSetTags = new ArrayList<String>();
-      MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, new TransMeta(), log );
+      MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, new TransMeta(), log );
       try {
         repSetTags = wrapper.getAllTags();
       } finally {
@@ -761,7 +761,7 @@ public class MongoDbModel extends XulEventSourceAdapter {
     saveMeta(meta);
 
     try {
-      MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, new TransMeta(), log );
+      MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, new TransMeta(), log );
       List<String> result = new ArrayList<String>();
       try {
         result = wrapper.getReplicaSetMembersThatSatisfyTagSets( mongoTagSets );

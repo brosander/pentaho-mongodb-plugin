@@ -34,7 +34,7 @@ import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
-import org.pentaho.mongo.wrapper.MongoWrapperFactory;
+import org.pentaho.mongo.wrapper.MongoClientWrapperFactory;
 
 import com.mongodb.CommandResult;
 import com.mongodb.DBObject;
@@ -473,7 +473,7 @@ public class MongoDbOutput extends BaseStep implements StepInterface {
           logBasic( authInfo );
         }
 
-        m_data.setConnection( MongoWrapperFactory.createMongoWrapper( m_meta, this, log ) ); //MongoDbOutputData.connect( m_meta, this, log ) );
+        m_data.setConnection( MongoClientWrapperFactory.createMongoClientWrapper( m_meta, this, log ) ); //MongoDbOutputData.connect( m_meta, this, log ) );
 //        m_data.setDB( m_data.getConnection().getDB( db ) );
 
         if ( Const.isEmpty( collection ) ) {

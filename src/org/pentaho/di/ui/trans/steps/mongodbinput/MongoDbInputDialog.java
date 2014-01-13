@@ -72,8 +72,8 @@ import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.dialog.TransPreviewProgressDialog;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.mongo.NamedReadPreference;
-import org.pentaho.mongo.wrapper.MongoWrapper;
-import org.pentaho.mongo.wrapper.MongoWrapperFactory;
+import org.pentaho.mongo.wrapper.MongoClientWrapper;
+import org.pentaho.mongo.wrapper.MongoClientWrapperFactory;
 import org.pentaho.mongo.wrapper.field.MongoField;
 
 import com.mongodb.DBObject;
@@ -1436,7 +1436,7 @@ public class MongoDbInputDialog extends BaseStepDialog implements
       MongoDbInputMeta meta = new MongoDbInputMeta();
       getInfo(meta);
       try {
-        MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+        MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
         List<String> dbNames = new ArrayList<String>();
         try {
           dbNames = wrapper.getDatabaseNames();
@@ -1486,7 +1486,7 @@ public class MongoDbInputDialog extends BaseStepDialog implements
       final MongoDbInputMeta meta = new MongoDbInputMeta();
       getInfo(meta);
       try {
-        MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+        MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
         Set<String> collections = new HashSet<String>();
         try {
           collections = wrapper.getCollectionsNames( dB );
@@ -1540,7 +1540,7 @@ public class MongoDbInputDialog extends BaseStepDialog implements
       getInfo(meta);
 
       try {
-        MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+        MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
         List<String> repSetTags = new ArrayList<String>();
         try {
           repSetTags = wrapper.getAllTags();
@@ -1663,7 +1663,7 @@ public class MongoDbInputDialog extends BaseStepDialog implements
           if (!Const.isEmpty(hostname)) {
             MongoDbInputMeta meta = new MongoDbInputMeta();
             getInfo(meta);
-            MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, transMeta, log );
+            MongoClientWrapper wrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, transMeta, log );
             List<String> satisfy = new ArrayList<String>();
             try {
               satisfy = wrapper.getReplicaSetMembersThatSatisfyTagSets( tagSets );

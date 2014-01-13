@@ -19,9 +19,9 @@ public class KerberosInvocationHandlerTest {
   @SuppressWarnings( "unchecked" )
   @Test
   public void testInvocationHandlerCallsDoAsWhichCallsDelegate() throws KettleException, PrivilegedActionException {
-    final MongoWrapper wrapper = mock( MongoWrapper.class );
+    final MongoClientWrapper wrapper = mock( MongoClientWrapper.class );
     AuthContext authContext = mock( AuthContext.class );
-    MongoWrapper wrappedWrapper = KerberosInvocationHandler.wrap( MongoWrapper.class, authContext, wrapper );
+    MongoClientWrapper wrappedWrapper = KerberosInvocationHandler.wrap( MongoClientWrapper.class, authContext, wrapper );
     when( authContext.doAs( any( PrivilegedExceptionAction.class ) ) ).thenAnswer( new Answer<Void>() {
 
       @Override

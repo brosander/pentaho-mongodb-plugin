@@ -14,15 +14,15 @@ import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCredential;
 
-public class MongoKerberosWrapper extends MongoUsernamePasswordWrapper {
+public class KerberosMongoClientWrapper extends UsernamePasswordMongoClientWrapper {
   private final AuthContext authContext;
 
-  public MongoKerberosWrapper( MongoDbMeta meta, VariableSpace vars, LogChannelInterface log ) throws KettleException {
+  public KerberosMongoClientWrapper( MongoDbMeta meta, VariableSpace vars, LogChannelInterface log ) throws KettleException {
     super( meta, vars, log );
     authContext = new AuthContext( KettleKerberosHelper.login( vars, getUser() ) );
   }
 
-  public MongoKerberosWrapper( MongoClient client, LogChannelInterface log, String username, AuthContext authContext ) {
+  public KerberosMongoClientWrapper( MongoClient client, LogChannelInterface log, String username, AuthContext authContext ) {
     super( client, log, username, null );
     this.authContext = authContext;
   }

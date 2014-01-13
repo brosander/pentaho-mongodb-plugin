@@ -47,7 +47,7 @@ public class MongoNoAuthWrapperTest {
     assertTrue( config != null );
     List<String> lastErrorModes = new ArrayList<String>();
 
-    new MongoNoAuthWrapper( null, null ).extractLastErrorModes( config, lastErrorModes );
+    new NoAuthMongoClientWrapper( null, null ).extractLastErrorModes( config, lastErrorModes );
 
     assertTrue( lastErrorModes.size() == 1 );
     assertEquals( "DCThree", lastErrorModes.get( 0 ) );
@@ -56,7 +56,7 @@ public class MongoNoAuthWrapperTest {
   @Test
   public void testGetAllReplicaSetMemberRecords() {
     DBObject config = (DBObject) JSON.parse( REP_SET_CONFIG );
-    Object members = config.get( MongoNoAuthWrapper.REPL_SET_MEMBERS );
+    Object members = config.get( NoAuthMongoClientWrapper.REPL_SET_MEMBERS );
 
     assertTrue( members != null );
     assertTrue( members instanceof BasicDBList );
@@ -66,9 +66,9 @@ public class MongoNoAuthWrapperTest {
   @Test
   public void testGetAllTags() {
     DBObject config = (DBObject) JSON.parse( REP_SET_CONFIG );
-    Object members = config.get( MongoNoAuthWrapper.REPL_SET_MEMBERS );
+    Object members = config.get( NoAuthMongoClientWrapper.REPL_SET_MEMBERS );
 
-    List<String> allTags = new MongoNoAuthWrapper( null, null ).setupAllTags( (BasicDBList) members );
+    List<String> allTags = new NoAuthMongoClientWrapper( null, null ).setupAllTags( (BasicDBList) members );
 
     assertEquals( 4, allTags.size() );
   }
@@ -81,10 +81,10 @@ public class MongoNoAuthWrapperTest {
     tagSets.add( tSet );
 
     DBObject config = (DBObject) JSON.parse( REP_SET_CONFIG );
-    Object members = config.get( MongoNoAuthWrapper.REPL_SET_MEMBERS );
+    Object members = config.get( NoAuthMongoClientWrapper.REPL_SET_MEMBERS );
 
     List<DBObject> satisfy =
-        new MongoNoAuthWrapper( null, null ).checkForReplicaSetMembersThatSatisfyTagSets( tagSets,
+        new NoAuthMongoClientWrapper( null, null ).checkForReplicaSetMembersThatSatisfyTagSets( tagSets,
             (BasicDBList) members );
 
     // two replica set members have the "use : production" tag in their tag sets

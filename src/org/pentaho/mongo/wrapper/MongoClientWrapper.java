@@ -9,7 +9,7 @@ import org.pentaho.mongo.wrapper.field.MongoField;
 
 import com.mongodb.DBObject;
 
-public interface MongoWrapper {
+public interface MongoClientWrapper {
   public Set<String> getCollectionsNames( String dB ) throws KettleException;
 
   public List<String> getIndexInfo( String dbName, String collection ) throws KettleException;

@@ -37,7 +37,7 @@ import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
-import org.pentaho.mongo.wrapper.MongoWrapper;
+import org.pentaho.mongo.wrapper.MongoClientWrapper;
 import org.pentaho.mongo.wrapper.collection.MongoCollectionWrapper;
 import org.pentaho.mongo.wrapper.cursor.MongoCursorWrapper;
 
@@ -72,7 +72,7 @@ public class MongoDbOutputData extends BaseStepData implements StepDataInterface
   protected RowMetaInterface m_outputRowMeta;
 
   /** Main entry point to the mongo driver */
-  protected MongoWrapper wrapper;
+  protected MongoClientWrapper clientWrapper;
 
   /** Collection object for the user-specified document collection */
   protected MongoCollectionWrapper m_collection;
@@ -175,18 +175,18 @@ public class MongoDbOutputData extends BaseStepData implements StepDataInterface
    * 
    * @return the connection or null
    */
-  public MongoWrapper getConnection() {
-    return wrapper;
+  public MongoClientWrapper getConnection() {
+    return clientWrapper;
   }
 
   /**
    * Set the current connection
    * 
-   * @param mongo
+   * @param clientWrapper
    *          the connection to use
    */
-  public void setConnection( MongoWrapper mongo ) {
-    wrapper = mongo;
+  public void setConnection( MongoClientWrapper clientWrapper ) {
+    this.clientWrapper = clientWrapper;
   }
 
   /**
@@ -198,11 +198,11 @@ public class MongoDbOutputData extends BaseStepData implements StepDataInterface
    *           if a problem occurs
    */
   public void createCollection( String db, String collectionName ) throws Exception {
-    if ( wrapper == null ) {
+    if ( clientWrapper == null ) {
       throw new Exception( BaseMessages.getString( PKG, "MongoDbOutput.Messages.Error.NoDatabaseSet" ) ); //$NON-NLS-1$
     }
 
-    wrapper.createCollection( db, collectionName );
+    clientWrapper.createCollection( db, collectionName );
   }
 
   /**

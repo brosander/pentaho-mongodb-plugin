@@ -29,7 +29,7 @@ public class MongoKerberosWrapperTest {
     LogChannelInterface log = mock( LogChannelInterface.class );
     final DBCollection dbCollection = mock( DBCollection.class );
     String username = "test";
-    final MongoKerberosWrapper wrapper = new MongoKerberosWrapper( client, log, username, authContext );
+    final KerberosMongoClientWrapper wrapper = new KerberosMongoClientWrapper( client, log, username, authContext );
     MongoCollectionWrapper mongoCollectionWrapper = wrapper.wrap( dbCollection );
     when( authContext.doAs( any( PrivilegedExceptionAction.class ) ) ).thenAnswer( new Answer<Void>() {
 

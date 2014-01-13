@@ -41,8 +41,8 @@ import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
-import org.pentaho.mongo.wrapper.MongoWrapper;
-import org.pentaho.mongo.wrapper.MongoWrapperFactory;
+import org.pentaho.mongo.wrapper.MongoClientWrapper;
+import org.pentaho.mongo.wrapper.MongoClientWrapperFactory;
 import org.pentaho.mongo.wrapper.collection.MongoCollectionWrapper;
 import org.pentaho.mongo.wrapper.cursor.MongoCursorWrapper;
 import org.pentaho.mongo.wrapper.field.MongoArrayExpansion;
@@ -64,7 +64,7 @@ public class MongoDbInputData extends BaseStepData implements StepDataInterface 
 
   public RowMetaInterface outputRowMeta;
 
-  public MongoWrapper wrapper;
+  public MongoClientWrapper clientWrapper;
   // public DB db;
   public MongoCollectionWrapper collection;
 
@@ -570,7 +570,7 @@ public class MongoDbInputData extends BaseStepData implements StepDataInterface 
 
   public static boolean discoverFields( final MongoDbInputMeta meta, final VariableSpace vars, final int docsToSample )
     throws KettleException {
-    MongoWrapper wrapper = MongoWrapperFactory.createMongoWrapper( meta, vars, null );
+    MongoClientWrapper clientWrapper = MongoClientWrapperFactory.createMongoClientWrapper( meta, vars, null );
     try {
       String db = vars.environmentSubstitute( meta.getDbName() );
       String collection = vars.environmentSubstitute( meta.getCollection() );
@@ -581,7 +581,7 @@ public class MongoDbInputData extends BaseStepData implements StepDataInterface 
         numDocsToSample = 100; // default
       }
       List<MongoField> discoveredFields =
-          wrapper.discoverFields( db, collection, query, fields, meta.getQueryIsPipeline(), numDocsToSample );
+          clientWrapper.discoverFields( db, collection, query, fields, meta.getQueryIsPipeline(), numDocsToSample );
 
       // return true if query resulted in documents being returned and fields
       // getting extracted
@@ -597,7 +597,7 @@ public class MongoDbInputData extends BaseStepData implements StepDataInterface 
         throw new KettleException( "Unable to discover fields from MongoDB", e );
       }
     } finally {
-      wrapper.dispose();
+      clientWrapper.dispose();
     }
 
     return false;
