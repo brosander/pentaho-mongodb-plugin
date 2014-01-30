@@ -11,6 +11,7 @@ import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.steps.mongodb.MongoDbMeta;
 
+import com.mongodb.CommandFailureException;
 import com.mongodb.CommandResult;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
@@ -103,6 +104,27 @@ public class UsernamePasswordMongoClientWrapper extends NoAuthMongoClientWrapper
       throw new KettleException( BaseMessages.getString( PKG,
           "MongoUsernamePasswordWrapper.ErrorAuthenticating.Exception", //$NON-NLS-1$
           comResult.getErrorMessage() ) );
+    }
+  }
+
+  @Override
+  public List<String> getDatabaseNames() throws KettleException {
+    try {
+      return super.getDatabaseNames();
+    } catch ( KettleException e ) {
+      if ( e.getCause() instanceof CommandFailureException ) {
+        CommandFailureException mongoException = (CommandFailureException) e.getCause();
+        if ( mongoException.getCommandResult() != null ) {
+          CommandResult result = mongoException.getCommandResult();
+          if ( result.containsField( "errmsg" ) ) {
+            String message =
+                BaseMessages.getString( PKG, "MongoUsernamePasswordWrapper.ListDbsUnauthorized.Exception", result
+                    .get( "errmsg" ) );
+            throw new KettleException( message, new Exception( message, e ) );
+          }
+        }
+      }
+      throw e;
     }
   }
 }
