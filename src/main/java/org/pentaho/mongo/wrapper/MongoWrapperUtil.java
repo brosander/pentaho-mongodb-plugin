@@ -30,20 +30,20 @@ public class MongoWrapperUtil {
   public static MongoClientWrapper createMongoClientWrapper( MongoDbMeta mongoDbMeta, VariableSpace vars,
                                                              LogChannelInterface log ) throws MongoDbException {
     MongoProperties.Builder propertiesBuilder = new MongoProperties.Builder();
-    setIfNotNull( propertiesBuilder, MongoProp.HOST, vars.environmentSubstitute( mongoDbMeta.getHostnames() ) );
-    setIfNotNull( propertiesBuilder, MongoProp.PORT, vars.environmentSubstitute( mongoDbMeta.getPort() ) );
-    setIfNotNull( propertiesBuilder, MongoProp.DBNAME, vars.environmentSubstitute( mongoDbMeta.getDbName() ) );
-    setIfNotNull( propertiesBuilder, MongoProp.connectTimeout, mongoDbMeta.getConnectTimeout() );
-    setIfNotNull( propertiesBuilder, MongoProp.socketTimeout, mongoDbMeta.getSocketTimeout() );
-    setIfNotNull( propertiesBuilder, MongoProp.readPreference, mongoDbMeta.getReadPreference() );
-    setIfNotNull( propertiesBuilder, MongoProp.writeConcern, mongoDbMeta.getWriteConcern() );
-    setIfNotNull( propertiesBuilder, MongoProp.wTimeout, mongoDbMeta.getWTimeout() );
-    setIfNotNull( propertiesBuilder, MongoProp.JOURNALED, Boolean.toString( mongoDbMeta.getJournal() ) );
-    setIfNotNull( propertiesBuilder, MongoProp.USE_ALL_REPLICA_SET_MEMBERS,
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.HOST, vars.environmentSubstitute( mongoDbMeta.getHostnames() ) );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.PORT, vars.environmentSubstitute( mongoDbMeta.getPort() ) );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.DBNAME, vars.environmentSubstitute( mongoDbMeta.getDbName() ) );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.connectTimeout, mongoDbMeta.getConnectTimeout() );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.socketTimeout, mongoDbMeta.getSocketTimeout() );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.readPreference, mongoDbMeta.getReadPreference() );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.writeConcern, mongoDbMeta.getWriteConcern() );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.wTimeout, mongoDbMeta.getWTimeout() );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.JOURNALED, Boolean.toString( mongoDbMeta.getJournal() ) );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.USE_ALL_REPLICA_SET_MEMBERS,
       Boolean.toString( mongoDbMeta.getUseAllReplicaSetMembers() ) );
-    setIfNotNull( propertiesBuilder, MongoProp.USERNAME, mongoDbMeta.getAuthenticationUser() );
-    setIfNotNull( propertiesBuilder, MongoProp.PASSWORD, mongoDbMeta.getAuthenticationPassword() );
-    setIfNotNull( propertiesBuilder, MongoProp.USE_KERBEROS,
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.USERNAME, mongoDbMeta.getAuthenticationUser() );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.PASSWORD, mongoDbMeta.getAuthenticationPassword() );
+    setIfNotNullOrEmpty( propertiesBuilder, MongoProp.USE_KERBEROS,
       Boolean.toString( mongoDbMeta.getUseKerberosAuthentication() ) );
     if ( mongoDbMeta.getReadPrefTagSets() != null ) {
       StringBuilder tagSet = new StringBuilder();
@@ -55,14 +55,14 @@ public class MongoWrapperUtil {
       if ( tagSet.length() > 0 ) {
         tagSet.setLength( tagSet.length() - 1 );
       }
-      setIfNotNull( propertiesBuilder, MongoProp.tagSet, tagSet.toString() );
+      setIfNotNullOrEmpty( propertiesBuilder, MongoProp.tagSet, tagSet.toString() );
     }
     return mongoWrapperClientFactory
       .createMongoClientWrapper( propertiesBuilder.build(), new KettleMongoUtilLogger( log ) );
   }
 
-  private static void setIfNotNull( MongoProperties.Builder builder, MongoProp prop, String value ) {
-    if ( value != null ) {
+  private static void setIfNotNullOrEmpty( MongoProperties.Builder builder, MongoProp prop, String value ) {
+    if ( value != null && value.trim().length() > 0 ) {
       builder.set( prop, value );
     }
   }
